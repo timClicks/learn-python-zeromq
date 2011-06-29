@@ -31,13 +31,10 @@ class PullSocket(threading.Thread):
         time.sleep(3)
         print "Pull " + str(self.num) + " connecting"
         pull_sock.connect("tcp://127.0.0.1:2200")
-        try:
+        message = pull_sock.recv()
+        while message and not self.kill_recieved:
+            print "Pull" + str(self.num) + ": I recieved a message '" + message + "'"
             message = pull_sock.recv()
-            while message and not self.kill_recieved:
-                print "Pull" + str(self.num) + ": I recieved a message '" + message + "'"
-                message = pull_sock.recv()
-        except KeyboardInterrupt:
-            print "Socket terminated"
 
 class PushSocket(threading.Thread):
 
