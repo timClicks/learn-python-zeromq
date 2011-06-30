@@ -16,58 +16,68 @@ import threading
 import time
 import zmq
 
-
 context = zmq.Context()
 
 class PullSocket(threading.Thread):
+    """ Definition of the pull socket.
 
+        It recieves the messages from the pull socket and prints them.
+    """
     def __init__(self, num):
+        """ Initialize the pull socket. """
         threading.Thread.__init__(self)
         self.num = num
-        self.kill_recieved = False
+        self.deamon=True                          # Deamon = True -> The thread finishes when the main process does
 
     def run(self):
+        """ Listen the 2200 port and start the loop receiving and printing. """
         pull_sock = context.socket(zmq.PULL)
-        time.sleep(3)
+        time.sleep(2)
         print "Pull " + str(self.num) + " connecting"
-        pull_sock.connect("tcp://127.0.0.1:2200")
+        pull_sock.connect("ipc://127.0.0.1:2200")
         message = pull_sock.recv()
-        while message and not self.kill_recieved:
+        while message:
             print "Pull" + str(self.num) + ": I recieved a message '" + message + "'"
             message = pull_sock.recv()
 
 class PushSocket(threading.Thread):
-
-    """ Here we define the Push socket. """
+    """ Definition of the push socket. 
+    
+        It sends the message 'N Potato' as a load balancer
+        to all the Pull sockets.
+    """
     def __init__(self):
+        """ Initializer. """
         threading.Thread.__init__(self)
+        self.deamon = True                          # Deamon = True -> The thread finishes when the main process does
         self.kill_recieved = False
 
     def run(self):
+        """ Bind the 2200 port and send the messages. """
         push_sock = context.socket(zmq.PUSH)
-        push_sock.bind("tcp://127.0.0.1:2200")
+        push_sock.bind("ipc://127.0.0.1:2200")
         for i in range (0, 7):
             message = str(i + 1) + " Potato"
             print "Sending " + message
             message = push_sock.send(message)
-            time.sleep(1)
-    
-threads = []
+            time.sleep(1)                           # Without this sleep, all the messages go to Pull0. That means that
+                                                    # zeromq assign the pull target switching by time, not by message.
 
-thread_push = PushSocket()
-thread_push.start()
-threads.append(thread_push)
+try:                                                # Initialize the main process. Create 1 push socket and 2 pull sockets.
 
-thread_pull = PullSocket(0)
-thread_pull.start()
-threads.append(thread_pull)
+    start_time = time.clock()
+    # init the push socket thread
+    thread_push = PushSocket()
+    thread_push.start()
 
-thread_pull_2 = PullSocket(1)
-thread_pull_2.start()
-threads.append(thread_pull_2)
+    # init the two pull socket threads
+    for i in range (0,1):
+        thread_pull = PullSocket(i)
+        thread_pull.start()
 
-thread_push.join()
-thread_pull.join()
-thread_pull_2.join()
+    time.sleep(25)                                  # Wait enough time to let the push-pull proceses end
 
-context.term()
+except (KeyboardInterrupt, SystemExit):
+    print "Received keyboard interrupt, system exiting"
+
+context.term()                                      # End the ZeroMQ context before to leave
