@@ -16,12 +16,10 @@ import threading
 import time
 import zmq
 
-context = zmq.Context()
-
 class PullSocket(threading.Thread):
     """ Definition of the pull socket.
 
-        It recieves the messages from the pull socket and prints them.
+        It recieves the messages from the push socket and prints them.
     """
     def __init__(self, num):
         """ Initialize the pull socket. """
@@ -50,7 +48,6 @@ class PushSocket(threading.Thread):
         """ Initializer. """
         threading.Thread.__init__(self)
         self.deamon = True                          # Deamon = True -> The thread finishes when the main process does
-        self.kill_recieved = False
 
     def run(self):
         """ Bind the 2200 port and send the messages. """
@@ -63,21 +60,22 @@ class PushSocket(threading.Thread):
             time.sleep(1)                           # Without this sleep, all the messages go to Pull0. That means that
                                                     # zeromq assign the pull target switching by time, not by message.
 
-try:                                                # Initialize the main process. Create 1 push socket and 2 pull sockets.
+if __name__ == "__main__":                          # Start the logic
+    
+    context = zmq.Context()
+    try:                                           
+        start_time = time.clock()
+        # init the push socket thread
+        thread_push = PushSocket()
+        thread_push.start()
 
-    start_time = time.clock()
-    # init the push socket thread
-    thread_push = PushSocket()
-    thread_push.start()
+        # init the two pull socket threads
+        for i in [0,1]:
+            thread_pull = PullSocket(i)
+            thread_pull.start()
 
-    # init the two pull socket threads
-    for i in range (0,1):
-        thread_pull = PullSocket(i)
-        thread_pull.start()
+        time.sleep(25)                              # Wait enough time to let the push-pull proceses end
+    except (KeyboardInterrupt, SystemExit):
+        print "Received keyboard interrupt, system exiting"
 
-    time.sleep(25)                                  # Wait enough time to let the push-pull proceses end
-
-except (KeyboardInterrupt, SystemExit):
-    print "Received keyboard interrupt, system exiting"
-
-context.term()                                      # End the ZeroMQ context before to leave
+    context.term()                                      # End the ZeroMQ context before to leave
