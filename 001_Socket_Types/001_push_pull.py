@@ -44,6 +44,7 @@ class PushSocket(threading.Thread):
         It sends the message 'N Potato' as a load balancer
         to all the Pull sockets.
     """
+
     def __init__(self):
         """ Initializer. """
         threading.Thread.__init__(self)

@@ -39,7 +39,7 @@ class PubSocket(threading.Thread):
         self.deamon=True                          # Deamon = True -> The thread finishes when the main process does
 
     def run(self):
-        """ Listen the 2200 port and start the loop receiving and printing. """
+        """ Binds the 2200 port and start the loop receiving and printing. """
         pub_sock = context.socket(zmq.PUB)
         pub_sock.bind("tcp://127.0.0.1:2200")
         while True:
@@ -62,18 +62,29 @@ class PubSocket(threading.Thread):
             time.sleep(1)
 
 class SubSocket(threading.Thread):
+    """ Definition of the SUB socket.
+
+        It subscribes to a topic and prints the messages of this topic.
+    """   
 
     def __init__(self, num, subs_message):
+        """ Initializes with its name and its message subscribe topic. """
         threading.Thread.__init__(self)
         self.num = num
         self.subs_message = subs_message
-        self.deamon = True
+        self.deamon = True                          # Deamon = True -> The thread finished if the main process does.
 
     def run(self):
-        sub_sock = context.socket(zmq.SUB)
+        """ Subscribe to the topic.
+
+            This method subscribes to the given topic. Wait for 5 publications of the topic
+            and then finish the execution.
+
+        """
         print "S" + str(self.num) + ": Subscribing to messages with topic " + self.subs_message
-        sub_sock.connect("tcp://127.0.0.1:2200")
+        sub_sock = context.socket(zmq.SUB)
         sub_sock.setsockopt(zmq.SUBSCRIBE, self.subs_message) 
+        sub_sock.connect("tcp://127.0.0.1:2200")
 
         for i in range (5):                 # wait for five messages
               topic    = sub_sock.recv()
@@ -94,7 +105,7 @@ if __name__ == "__main__":                          # Start the logic
         thread_pub = PubSocket()
         thread_pub.start()
 
-        # init the two pull socket threads
+        # init the two sub socket threads
         for i in range(3):
             if (i % 2 == 0):
                 thread_sub = SubSocket(i, "Important")
