@@ -78,5 +78,5 @@ if __name__ == "__main__":                          # Start the logic
         time.sleep(25)                              # Wait enough time to let the push-pull proceses end
     except (KeyboardInterrupt, SystemExit):
         print "Received keyboard interrupt, system exiting"
-
-    context.term()                                      # End the ZeroMQ context before to leave
+    finally:
+        context.term()                                      # End the ZeroMQ context before to leave
